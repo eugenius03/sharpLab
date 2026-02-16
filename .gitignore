@@ -1,0 +1,42 @@
+# Build outputs
+bin/
+obj/
+[Bb]uild/
+[Bb]in/
+[Oo]bj/
+
+# .NET artifacts
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.vspscc
+*.vssscc
+*.pidb
+*.svclog
+*.scc
+*.pdb
+*.cache
+*.nupkg
+*.snupkg
+*.nuspec
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Visual Studio / Rider / JetBrains
+.vs/
+.idea/
+*.sln.iml
+*.DotSettings.user
+
+# Test results
+TestResults/
+*.trx
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
