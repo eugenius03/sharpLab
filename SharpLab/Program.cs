@@ -17,14 +17,14 @@ internal static class Program
 
         st = new Student
         {
-            Person = new Person("Yevhenii", "Popov", new DateTime(2003, 5, 12)),
+            Person = new Person("Oleg", "Mantie", new DateTime(2003, 5, 12)),
             Education = Education.Master,
             GroupNumber = 310,
-            Exams = new[]
-            {
+            Exams =
+            [
                 new Exam("OOP", 95, new DateTime(2025, 12, 20)),
                 new Exam("Databases", 90, new DateTime(2025, 12, 22))
-            }
+            ]
         };
 
         Console.WriteLine("=== ToString() after assigning properties ===");
@@ -84,8 +84,9 @@ internal static class Program
     private static int MeasureOneDim(Exam[] arr)
     {
         var start = Environment.TickCount;
-        for (var i = 0; i < arr.Length; i++)
-            arr[i].Grade = 100;
+        foreach (var t in arr)
+            t.Grade = 100;
+
         var end = Environment.TickCount;
         return end - start;
     }

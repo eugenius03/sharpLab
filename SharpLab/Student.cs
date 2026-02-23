@@ -2,9 +2,6 @@ namespace SharpLab;
 
 public class Student(Person person, Education education, int groupNumber)
 {
-    private Person _person = person;
-    private Education _education = education;
-    private int _groupNumber = groupNumber;
     private Exam[] _exams = Array.Empty<Exam>();
 
     public Student()
@@ -12,81 +9,48 @@ public class Student(Person person, Education education, int groupNumber)
     {
     }
 
-    public Person Person
-    {
-        get => _person;
-        init => _person = value;
-    }
-
-    public Education Education
-    {
-        get => _education;
-        init => _education = value;
-    }
-
-    public int GroupNumber
-    {
-        get => _groupNumber;
-        init => _groupNumber = value;
-    }
+    public Person Person { get; init; } = person;
+    public Education Education { get; init; } = education;
+    public int GroupNumber { get; init; } = groupNumber;
 
     public Exam[] Exams
     {
-        get
-        {
-            var copy = new Exam[_exams.Length];
-            Array.Copy(_exams, copy, _exams.Length);
-            return copy;
-        }
-        init => _exams = value;
+        get => (Exam[])_exams.Clone();
+        init => _exams = value?.ToArray() ?? Array.Empty<Exam>();
     }
 
     private double AverageGrade
-    {
-        get
-        {
-            if (_exams.Length == 0) return 0.0;
-            long sum = 0;
-            for (int i = 0; i < _exams.Length; i++)
-                sum += _exams[i].Grade;
-            return (double)sum / _exams.Length;
-        }
-    }
+        => _exams.Length == 0 ? 0.0 : _exams.Average(e => e.Grade);
 
-    public bool this[Education edu] => _education == edu;
+    public bool this[Education edu] => Education == edu;
 
     public void AddExams(params Exam[] exams)
     {
         if (exams.Length == 0) return;
 
-        int oldLen = _exams.Length;
-        int addLen = exams.Length;
-
-        var newArr = new Exam[oldLen + addLen];
-        Array.Copy(_exams, newArr, oldLen);
-        Array.Copy(exams, 0, newArr, oldLen, addLen);
-
-        _exams = newArr;
+        var oldLen = _exams.Length;
+        Array.Resize(ref _exams, oldLen + exams.Length);
+        Array.Copy(exams, 0, _exams, oldLen, exams.Length);
     }
 
     public override string ToString()
     {
-        string header =
-            $"Student: [{_person}], Education={_education}, GroupNumber={_groupNumber}\n" +
+        var header =
+            $"Student: [{Person}], Education={Education}, GroupNumber={GroupNumber}\n" +
             $"ExamsCount={_exams.Length}";
 
         if (_exams.Length == 0) return header + "\nExams: (none)";
 
-        string examsText = "Exams:\n";
-        for (int i = 0; i < _exams.Length; i++)
-        {
-            examsText += $"  - {_exams[i]}\n";
-        }
+        var examsText = "Exams:\n";
+        foreach (var t in _exams)
+            examsText += $"  - {t}\n";
 
         return header + "\n" + examsText.TrimEnd();
     }
 
     public string ToShortString()
-        =>
-            $"Student: [{_person.ToShortString()}], Education={_education}, GroupNumber={_groupNumber}, AvgGrade={AverageGrade:F2}";
+    {
+        return
+            $"Student: [{Person.ToShortString()}], Education={Education}, GroupNumber={GroupNumber}, AvgGrade={AverageGrade}";
+    }
 }
