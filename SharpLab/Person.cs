@@ -18,6 +18,6 @@ public class Person(string firstName, string lastName, DateTime birthDate)
 
     public string ToShortString()
     {
-        return $"{LastName} {FirstName}";
+        return FirstName + " " + LastName;
     }
 }

@@ -7,9 +7,9 @@ public class Exam(string subject, int grade, DateTime examDate)
     {
     }
 
-    public string Subject { get; set; } = subject;
+    public string Subject { get; init; } = subject;
     public int Grade { get; set; } = grade;
-    public DateTime ExamDate { get; set; } = examDate;
+    public DateTime ExamDate { get; init; } = examDate;
 
     public override string ToString()
     {

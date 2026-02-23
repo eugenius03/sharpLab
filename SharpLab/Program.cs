@@ -63,16 +63,25 @@ internal static class Program
             rect[r, c] = new Exam();
 
         var jagged = new Exam[nRows][];
+        var current = 1;
+        var used = 0;
+
         for (var r = 0; r < nRows; r++)
         {
-            jagged[r] = new Exam[nCols];
-            for (var c = 0; c < nCols; c++)
-                jagged[r][c] = new Exam();
+            var left = total - used;
+
+            var rowSize = Math.Min(current, left);
+            jagged[r] = new Exam[rowSize];
+
+            for (var c = 0; c < rowSize; c++) jagged[r][c] = new Exam();
+
+            used += rowSize;
+            current++;
         }
 
         var t1 = MeasureOneDim(oneDim);
-        var t2 = MeasureRect(rect, nRows, nCols);
-        var t3 = MeasureJagged(jagged, nRows, nCols);
+        var t2 = MeasureRect(rect);
+        var t3 = MeasureJagged(jagged);
 
         Console.WriteLine();
         Console.WriteLine($"nRows={nRows}, nColumns={nCols}, totalElements={total}");
@@ -91,21 +100,21 @@ internal static class Program
         return end - start;
     }
 
-    private static int MeasureRect(Exam[,] arr, int nRows, int nCols)
+    private static int MeasureRect(Exam[,] arr)
     {
         var start = Environment.TickCount;
-        for (var r = 0; r < nRows; r++)
-        for (var c = 0; c < nCols; c++)
+        for (var r = 0; r < arr.GetLength(0); r++)
+        for (var c = 0; c < arr.GetLength(1); c++)
             arr[r, c].Grade = 100;
         var end = Environment.TickCount;
         return end - start;
     }
 
-    private static int MeasureJagged(Exam[][] arr, int nRows, int nCols)
+    private static int MeasureJagged(Exam[][] arr)
     {
         var start = Environment.TickCount;
-        for (var r = 0; r < nRows; r++)
-        for (var c = 0; c < nCols; c++)
+        for (var r = 0; r < arr.Length; r++)
+        for (var c = 0; c < arr[r].Length; c++)
             arr[r][c].Grade = 100;
         var end = Environment.TickCount;
         return end - start;

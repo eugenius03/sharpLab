@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace SharpLab;
 
 public class Student(Person person, Education education, int groupNumber)
@@ -16,7 +18,7 @@ public class Student(Person person, Education education, int groupNumber)
     public Exam[] Exams
     {
         get => (Exam[])_exams.Clone();
-        init => _exams = value?.ToArray() ?? Array.Empty<Exam>();
+        init => _exams = value ?? Array.Empty<Exam>();
     }
 
     private double AverageGrade
@@ -41,11 +43,11 @@ public class Student(Person person, Education education, int groupNumber)
 
         if (_exams.Length == 0) return header + "\nExams: (none)";
 
-        var examsText = "Exams:\n";
+        var examsText = new StringBuilder("Exams:\n");
         foreach (var t in _exams)
-            examsText += $"  - {t}\n";
+            examsText.Append($"  - {t}\n");
 
-        return header + "\n" + examsText.TrimEnd();
+        return header + "\n" + examsText;
     }
 
     public string ToShortString()
