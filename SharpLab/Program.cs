@@ -1,89 +1,93 @@
-﻿namespace SharpLab;
+namespace SharpLab;
 
 internal static class Program
 {
     private static void Main()
     {
-        var p1 = new Person("Josip", "Klopotenko", new DateTime(2000, 1, 1));
-        var p2 = new Person("Josip", "Klopotenko", new DateTime(2000, 1, 1));
+        Console.WriteLine(" LAB 3  PART 1 – StudentCollection");
 
-        Console.WriteLine("=== Person equality and hash codes ===");
-        Console.WriteLine($"ReferenceEquals(p1, p2): {ReferenceEquals(p1, p2)}");
-        Console.WriteLine($"p1 == p2: {p1 == p2}");
-        Console.WriteLine($"p1.Equals(p2): {p1.Equals(p2)}");
-        Console.WriteLine($"p1.GetHashCode(): {p1.GetHashCode()}");
-        Console.WriteLine($"p2.GetHashCode(): {p2.GetHashCode()}");
-        Console.WriteLine();
+        var collection = new StudentCollection();
 
-        var st = new Student(
-            new Person("Oleg", "Mimchinckii", new DateTime(2003, 5, 12)),
-            Education.Master,
-            310);
+        var s1 = new Student(new Person("Anna", "Kovalenko", new DateTime(2001, 3, 15)), Education.Master, 201);
+        s1.AddExams(new Exam("OOP", 5, new DateTime(2025, 12, 20)),
+            new Exam("Databases", 4, new DateTime(2025, 12, 22)));
+        s1.AddTests(new Test("OOP", true), new Test("Databases", true));
 
-        st.AddExams(
-            new Exam("OOP", 5, new DateTime(2025, 12, 20)),
-            new Exam("Databases", 4, new DateTime(2025, 12, 22)),
-            new Exam("Networks", 3, new DateTime(2026, 1, 10)),
-            new Exam("Algorithms", 5, new DateTime(2026, 1, 15))
-        );
+        var s2 = new Student(new Person("Ivan", "Petrenko", new DateTime(2002, 7, 22)), Education.Bachelor, 301);
+        s2.AddExams(new Exam("Networks", 3, new DateTime(2026, 1, 10)),
+            new Exam("Math", 2, new DateTime(2026, 1, 12)));
+        s2.AddTests(new Test("Networks", false));
 
-        st.AddTests(
-            new Test("OOP", true),
-            new Test("Databases", true),
-            new Test("Networks", false),
-            new Test("Philosophy", true)
-        );
+        var s3 = new Student(new Person("Maria", "Shevchenko", new DateTime(2000, 11, 5)), Education.Master, 401);
+        s3.AddExams(new Exam("Algorithms", 5, new DateTime(2026, 1, 15)),
+            new Exam("OOP", 5, new DateTime(2025, 12, 20)));
+        s3.AddTests(new Test("Algorithms", true), new Test("OOP", true));
 
-        Console.WriteLine("=== Student full data ===");
-        Console.WriteLine(st.ToString());
-        Console.WriteLine();
+        var s4 = new Student(new Person("Olha", "Bondarenko", new DateTime(2003, 6, 1)), Education.SecondEducation,
+            501);
+        s4.AddExams(new Exam("Physics", 4, new DateTime(2026, 2, 1)));
 
-        Console.WriteLine("=== Student.Person property ===");
-        Console.WriteLine(st.Person);
-        Console.WriteLine();
+        collection.AddStudents(s1, s2, s3, s4);
 
-        var stCopy = (Student)st.DeepCopy();
+        Console.WriteLine("\n--- Full StudentCollection (ToString) ---");
+        Console.WriteLine(collection);
 
-        st.Person = new Person("Changed", "Name", new DateTime(1999, 9, 9));
-        st.GroupNumber = 350;
-        st.AddExams(new Exam("Linear Algebra", 4, new DateTime(2026, 2, 1)));
-        st.AddTests(new Test("Linear Algebra", true));
+        Console.WriteLine(" LAB 3  PART 2 – Sorting");
 
-        Console.WriteLine("=== Original student after changes ===");
-        Console.WriteLine(st.ToString());
-        Console.WriteLine();
+        Console.WriteLine("\n--- Sorted by Last Name (IComparable) ---");
+        collection.SortByLastName();
+        Console.WriteLine(collection.ToShortString());
 
-        Console.WriteLine("=== Deep copy of student (must be unchanged) ===");
-        Console.WriteLine(stCopy.ToString());
-        Console.WriteLine();
+        Console.WriteLine("--- Sorted by Birth Date (IComparer<Person>) ---");
+        collection.SortByBirthDate();
+        Console.WriteLine(collection.ToShortString());
 
-        Console.WriteLine("=== GroupNumber validation (exception demo) ===");
-        try
+        Console.WriteLine("--- Sorted by Average Grade (IComparer<Student>) ---");
+        collection.SortByAverageGrade();
+        Console.WriteLine(collection.ToShortString());
+
+        Console.WriteLine(" LAB 3  PART 3 – LINQ Operations");
+
+        Console.WriteLine($"\nMax average grade: {collection.MaxAverageGrade:F2}");
+
+        Console.WriteLine("\nMaster students (Education.Master):");
+        foreach (var s in collection.MasterStudents)
+            Console.WriteLine("  " + s.ToShortString());
+
+        Console.WriteLine("\nGroups by average grade:");
+        var uniqueAvgs = new[] { s1, s2, s3, s4 }
+            .Select(s => Math.Round(s.AverageGrade, 2))
+            .Distinct()
+            .OrderBy(x => x);
+
+        foreach (var avg in uniqueAvgs)
         {
-            st.GroupNumber = 50; // invalid
+            var group = collection.AverageMarkGroup(avg);
+            Console.WriteLine($"  Avg = {avg:F2}  ({group.Count} student(s)):");
+            foreach (var s in group)
+                Console.WriteLine("    " + s.ToShortString());
         }
-        catch (ArgumentOutOfRangeException ex)
+
+        Console.WriteLine(" LAB 3  PART 4 – TestCollections (search timing)");
+
+        var size = 0;
+        while (true)
         {
-            Console.WriteLine("Error setting GroupNumber: " + ex.Message);
+            Console.Write("Enter the number of elements for TestCollections: ");
+            var input = Console.ReadLine();
+            if (int.TryParse(input, out var value) && value > 0)
+            {
+                size = value;
+                break;
+            }
+
+            Console.WriteLine("  Error: please enter a positive integer.");
         }
 
-        Console.WriteLine();
+        var tc = new TestCollections(size);
+        tc.MeasureSearchTimes();
 
-        Console.WriteLine("=== Exams with grade > 3 for original student ===");
-        foreach (Exam e in st.ExamsWithGradeGreaterThan(3)) Console.WriteLine(e);
-        Console.WriteLine();
-
-
-        Console.WriteLine("=== Subjects that are in BOTH tests and exams ===");
-        foreach (string subject in st) Console.WriteLine(subject);
-        Console.WriteLine();
-
-        Console.WriteLine("=== All passed tests and exams ===");
-        foreach (var obj in st.PassedResults()) Console.WriteLine(obj);
-        Console.WriteLine();
-
-        Console.WriteLine("=== Passed tests with passed exams ===");
-        foreach (Test t in st.PassedTestsWithPassedExam()) Console.WriteLine(t);
-        Console.WriteLine();
+        Console.WriteLine("\nDone. Press any key to exit.");
+        Console.ReadKey();
     }
 }

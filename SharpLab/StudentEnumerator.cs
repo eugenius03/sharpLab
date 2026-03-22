@@ -1,22 +1,23 @@
 using System.Collections;
+using System.Collections.Generic;
 
 namespace SharpLab;
 
 public class StudentEnumerator : IEnumerator
 {
-    private readonly ArrayList _subjects;
+    private readonly List<string> _subjects;
     private int _position = -1;
 
     public StudentEnumerator(Student student)
     {
-        _subjects = new ArrayList();
+        _subjects = new List<string>();
 
-        var examSubjects = new ArrayList();
-        foreach (Exam e in student.Exams)
+        var examSubjects = new List<string>();
+        foreach (var e in student.Exams)
             if (e?.Subject != null && !examSubjects.Contains(e.Subject))
                 examSubjects.Add(e.Subject);
 
-        foreach (Test t in student.Tests)
+        foreach (var t in student.Tests)
             if (t?.Subject != null &&
                 examSubjects.Contains(t.Subject) &&
                 !_subjects.Contains(t.Subject))
@@ -29,7 +30,6 @@ public class StudentEnumerator : IEnumerator
         {
             if (_position < 0 || _position >= _subjects.Count)
                 throw new InvalidOperationException();
-
             return _subjects[_position]!;
         }
     }
@@ -40,8 +40,5 @@ public class StudentEnumerator : IEnumerator
         return _position < _subjects.Count;
     }
 
-    public void Reset()
-    {
-        _position = -1;
-    }
+    public void Reset() => _position = -1;
 }

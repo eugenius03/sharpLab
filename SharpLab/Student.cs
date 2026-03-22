@@ -1,11 +1,12 @@
 using System.Collections;
+using System.Collections.Generic;
 
 namespace SharpLab;
 
 public class Student : Person, IEnumerable
 {
-    private readonly ArrayList _exams;
-    private readonly ArrayList _tests;
+    private readonly List<Exam> _exams;
+    private readonly List<Test> _tests;
     private int _groupNumber;
 
     public Student(Person person, Education education, int groupNumber)
@@ -13,8 +14,8 @@ public class Student : Person, IEnumerable
     {
         Education = education;
         GroupNumber = groupNumber;
-        _tests = new ArrayList();
-        _exams = new ArrayList();
+        _tests = new List<Test>();
+        _exams = new List<Exam>();
     }
 
     public Student()
@@ -44,21 +45,20 @@ public class Student : Person, IEnumerable
                 throw new ArgumentOutOfRangeException(
                     "GroupNumber",
                     "GroupNumber must be > 100 and <= 699.");
-
             _groupNumber = value;
         }
     }
 
-    public ArrayList Exams
+    public List<Exam> Exams
     {
         get => _exams;
-        init => _exams = value ?? new ArrayList();
+        init => _exams = value ?? new List<Exam>();
     }
 
-    public ArrayList Tests
+    public List<Test> Tests
     {
         get => _tests;
-        init => _tests = value ?? new ArrayList();
+        init => _tests = value ?? new List<Test>();
     }
 
     public double AverageGrade
@@ -66,12 +66,10 @@ public class Student : Person, IEnumerable
         get
         {
             if (_exams.Count == 0) return 0.0;
-
             long sum = 0;
-            foreach (Exam e in _exams)
+            foreach (var e in _exams)
                 if (e != null)
                     sum += e.Grade;
-
             return (double)sum / _exams.Count;
         }
     }
@@ -86,29 +84,24 @@ public class Student : Person, IEnumerable
     public override object DeepCopy()
     {
         var copy = new Student(Person, Education, _groupNumber);
-
-        foreach (Test t in _tests)
+        foreach (var t in _tests)
             if (t != null)
                 copy.AddTests(new Test(t.Subject, t.IsPassed));
-
-        foreach (Exam e in _exams)
+        foreach (var e in _exams)
             if (e != null)
                 copy.AddExams(new Exam(e.Subject, e.Grade, e.ExamDate));
-
         return copy;
     }
 
     public void AddExams(params Exam[] exams)
     {
         if (exams.Length == 0) return;
-
         foreach (var e in exams) _exams.Add(e);
     }
 
     public void AddTests(params Test[] tests)
     {
         if (tests.Length == 0) return;
-
         foreach (var t in tests) _tests.Add(t);
     }
 
@@ -127,8 +120,7 @@ public class Student : Person, IEnumerable
         else
         {
             testsText = "Tests:" + Environment.NewLine;
-            foreach (Test t in _tests) testsText += " - " + t + Environment.NewLine;
-
+            foreach (var t in _tests) testsText += " - " + t + Environment.NewLine;
             testsText = testsText.TrimEnd();
         }
 
@@ -140,8 +132,7 @@ public class Student : Person, IEnumerable
         else
         {
             examsText = "Exams:" + Environment.NewLine;
-            foreach (Exam e in _exams) examsText += " - " + e + Environment.NewLine;
-
+            foreach (var e in _exams) examsText += " - " + e + Environment.NewLine;
             examsText = examsText.TrimEnd();
         }
 
@@ -151,40 +142,25 @@ public class Student : Person, IEnumerable
     public new string ToShortString()
     {
         return $"Student: [{ToShortStringBase()}], Education={Education}, " +
-               $"GroupNumber={_groupNumber}, AvgGrade={AverageGrade:F2}";
+               $"GroupNumber={_groupNumber}, AvgGrade={AverageGrade:F2}, " +
+               $"TestsCount={_tests.Count}, ExamsCount={_exams.Count}";
     }
 
-    private string ToShortStringBase()
-    {
-        return base.ToShortString();
-    }
+    private string ToShortStringBase() => base.ToShortString();
 
     public override bool Equals(object? obj)
     {
         if (ReferenceEquals(this, obj)) return true;
         if (obj is not Student other) return false;
-
         if (!base.Equals(other)) return false;
         if (Education != other.Education) return false;
         if (_groupNumber != other._groupNumber) return false;
-
         if (_tests.Count != other._tests.Count) return false;
         if (_exams.Count != other._exams.Count) return false;
-
         for (var i = 0; i < _tests.Count; i++)
-        {
-            var t1 = (Test)_tests[i]!;
-            var t2 = (Test)other._tests[i]!;
-            if (!t1.Equals(t2)) return false;
-        }
-
+            if (!_tests[i].Equals(other._tests[i])) return false;
         for (var i = 0; i < _exams.Count; i++)
-        {
-            var e1 = (Exam)_exams[i]!;
-            var e2 = (Exam)other._exams[i]!;
-            if (!e1.Equals(e2)) return false;
-        }
-
+            if (!_exams[i].Equals(other._exams[i])) return false;
         return true;
     }
 
@@ -193,11 +169,8 @@ public class Student : Person, IEnumerable
         var hash = base.GetHashCode();
         hash = hash * 31 + Education.GetHashCode();
         hash = hash * 31 + _groupNumber.GetHashCode();
-
-        foreach (Test t in _tests) hash = hash * 31 + (t == null ? 0 : t.GetHashCode());
-
-        foreach (Exam e in _exams) hash = hash * 31 + (e == null ? 0 : e.GetHashCode());
-
+        foreach (var t in _tests) hash = hash * 31 + (t == null ? 0 : t.GetHashCode());
+        foreach (var e in _exams) hash = hash * 31 + (e == null ? 0 : e.GetHashCode());
         return hash;
     }
 
@@ -208,45 +181,35 @@ public class Student : Person, IEnumerable
         return left.Equals(right);
     }
 
-    public static bool operator !=(Student? left, Student? right)
-    {
-        return !(left == right);
-    }
+    public static bool operator !=(Student? left, Student? right) => !(left == right);
 
     public IEnumerable AllResults()
     {
-        foreach (Test t in _tests)
-            yield return t;
-
-        foreach (Exam e in _exams)
-            yield return e;
+        foreach (var t in _tests) yield return t;
+        foreach (var e in _exams) yield return e;
     }
 
     public IEnumerable ExamsWithGradeGreaterThan(int minGrade)
     {
-        foreach (Exam e in _exams)
+        foreach (var e in _exams)
             if (e.Grade > minGrade)
                 yield return e;
     }
 
     public IEnumerable PassedResults()
     {
-        foreach (Test t in _tests)
-            if (t.IsPassed)
-                yield return t;
-
-        foreach (Exam e in _exams)
-            if (e.Grade > 2)
-                yield return e;
+        foreach (var t in _tests)
+            if (t.IsPassed) yield return t;
+        foreach (var e in _exams)
+            if (e.Grade > 2) yield return e;
     }
 
     public IEnumerable PassedTestsWithPassedExam()
     {
-        foreach (Test t in _tests)
+        foreach (var t in _tests)
         {
             if (!t.IsPassed) continue;
-
-            foreach (Exam e in _exams)
+            foreach (var e in _exams)
                 if (e.Subject == t.Subject && e.Grade > 2)
                 {
                     yield return t;
