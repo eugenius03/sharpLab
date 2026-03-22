@@ -1,6 +1,7 @@
 namespace SharpLab;
 
-public class Person(string firstName, string lastName, DateTime birthDate) : IDateAndCopy
+public class Person(string firstName, string lastName, DateTime birthDate)
+    : IDateAndCopy, IComparable, IComparer<Person>
 {
     protected DateTime _birthDate = birthDate;
     protected string _firstName = firstName;
@@ -29,7 +30,22 @@ public class Person(string firstName, string lastName, DateTime birthDate) : IDa
         init => _birthDate = value;
     }
 
-    // IDateAndCopy.Date – for Person it is the birth date
+    public int CompareTo(object? obj)
+    {
+        if (obj is null) return 1;
+        if (obj is not Person other)
+            throw new ArgumentException("Object is not a Person");
+        return string.Compare(_lastName, other._lastName, StringComparison.Ordinal);
+    }
+
+    public int Compare(Person? x, Person? y)
+    {
+        if (x is null && y is null) return 0;
+        if (x is null) return -1;
+        if (y is null) return 1;
+        return x._birthDate.CompareTo(y._birthDate);
+    }
+
     public DateTime Date
     {
         get => _birthDate;
