@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace SharpLab;
@@ -50,9 +52,9 @@ public class TestCollections
 
         var cases = new (string Label, Person Key)[]
         {
-            ("First  ", _personList[0]),
-            ("Middle ", _personList[count / 2]),
-            ("Last   ", _personList[count - 1]),
+            ("First  ", GenerateStudent(0).Person),
+            ("Middle ", GenerateStudent(count / 2).Person),
+            ("Last   ", GenerateStudent(count - 1).Person),
             ("Missing", GenerateStudent(-1).Person)
         };
 
@@ -70,8 +72,7 @@ public class TestCollections
             var t1 = MeasureTicks(() => _personList.Contains(key));
             var t2 = MeasureTicks(() => _stringList.Contains(keyStr));
             var t3 = MeasureTicks(() => _personDict.ContainsKey(key));
-
-            // For ContainsValue we need the actual Student value (or any non-null Student for "Missing")
+            
             var valStudent = _personDict.TryGetValue(key, out var s) ? s : GenerateStudent(-1);
             var t4 = MeasureTicks(() => _personDict.ContainsValue(valStudent));
 
