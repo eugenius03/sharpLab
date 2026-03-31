@@ -1,3 +1,5 @@
+using System;
+
 namespace SharpLab;
 
 public interface IDateAndCopy
