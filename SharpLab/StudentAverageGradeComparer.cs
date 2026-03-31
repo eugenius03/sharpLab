@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace SharpLab;
 
 public class StudentAverageGradeComparer : IComparer<Student>
