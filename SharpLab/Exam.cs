@@ -1,5 +1,3 @@
-using System;
-
 namespace SharpLab;
 
 public class Exam(string subject, int grade, DateTime examDate) : IDateAndCopy
