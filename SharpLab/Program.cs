@@ -6,61 +6,56 @@ internal static class Program
 {
     private static void Main()
     {
-        var col1 = new StudentCollection("Факультет-ІТ");
-        var col2 = new StudentCollection("Факультет-CS");
+        Console.WriteLine("LAB 6 – Serialization");
 
-        var journal1 = new Journal();
-        var journal2 = new Journal();
+        var st1 = new Student(new Person("Ivan", "Lerk", new DateTime(2000, 1, 1)), Education.Bachelor, 311);
+        st1.AddExams(new Exam("Math", 5, new DateTime(2023, 1, 1)),
+            new Exam("Physics", 4, new DateTime(2023, 2, 1)));
+        st1.AddTests(new Test("Programming", true));
 
-        col1.StudentCountChanged     += journal1.OnStudentCountChanged;
-        col1.StudentReferenceChanged += journal1.OnStudentReferenceChanged;
+        var st2 = (Student)st1.DeepCopy();
+        st2.Education = Education.Master;
+        st2.AddExams(new Exam("Chemistry", 3, new DateTime(2023, 3, 1)));
 
-        col1.StudentCountChanged     += journal2.OnStudentCountChanged;
-        col1.StudentReferenceChanged += journal2.OnStudentReferenceChanged;
-        col2.StudentCountChanged     += journal2.OnStudentCountChanged;
-        col2.StudentReferenceChanged += journal2.OnStudentReferenceChanged;
+        Console.WriteLine("\nOriginal student:");
+        Console.WriteLine(st1);
+        Console.WriteLine("\nDeep copy (modified):");
+        Console.WriteLine(st2);
 
-        col1.AddDefaults();
-        col2.AddDefaults();
+        Console.Write("\nEnter filename to save/load (e.g. StudentData.json): ");
+        var filename = Console.ReadLine() ?? "StudentData.json";
 
-        var newStudent1 = new Student(
-            new Person("Sofiya", "Marchenko", new DateTime(2003, 4, 18)),
-            Education.Bachelor, 302);
-        newStudent1.AddExams(new Exam("Algorithms", 5, new DateTime(2026, 1, 20)));
-        newStudent1.AddTests(new Test("Algorithms", true));
+        if (File.Exists("../../../SerializedObjects/" + filename))
+        {
+            st2.Load(filename);
+            Console.WriteLine("\nLoaded from file:");
+        }
+        else
+        {
+            st2.Save(filename);
+            Console.WriteLine($"\nSaved to {filename}. Loaded student:");
+        }
+        Console.WriteLine(st2);
 
-        var newStudent2 = new Student(
-            new Person("Dmytro", "Savchuk", new DateTime(2001, 11, 30)),
-            Education.SecondEducation, 502);
-        newStudent2.AddExams(new Exam("Networks", 4, new DateTime(2026, 2, 5)));
+        Console.WriteLine("\nAdd exam from console:");
+        if (!st2.AddFromConsole())
+            Console.WriteLine("Exam not added (invalid input).");
 
-        col1.AddStudents(newStudent1);
-        col2.AddStudents(newStudent1, newStudent2);
+        st2.Save(filename);
+        Console.WriteLine("\nUpdated student (after AddFromConsole + Save):");
+        Console.WriteLine(st2);
 
-        col1.Remove(1);
-        col2.Remove(0);
+        Student.Load(filename, st2);
+        Console.WriteLine("\nReloaded via static Load:");
+        Console.WriteLine(st2);
 
-        var replacement1 = new Student(
-            new Person("Oleksii", "Petorchuk", new DateTime(2002, 8, 7)),
-            Education.Master, 202);
-        replacement1.AddExams(new Exam("OOP", 5, new DateTime(2026, 1, 10)));
-        col1[0] = replacement1;
+        Console.WriteLine("\nAdd another exam from console:");
+        if (!st2.AddFromConsole())
+            Console.WriteLine("Exam not added (invalid input).");
 
-        int lastIdx = col2.Count - 1;
-        var replacement2 = new Student(
-            new Person("Yulia", "Bondar", new DateTime(2001, 3, 25)),
-            Education.Bachelor, 303);
-        replacement2.AddExams(new Exam("Math", 4, new DateTime(2026, 2, 12)));
-        col2[lastIdx] = replacement2;
-
-        if (col1.Count > 0)
-            col1[0].GroupNumber = 203;
-
-        Console.WriteLine("=== Журнал 1 (Факультет-ІТ) ===");
-        Console.WriteLine(journal1);
-
-        Console.WriteLine("\n=== Журнал 2 (Факультет-ІТ + Факультет-CS) ===");
-        Console.WriteLine(journal2);
+        Student.Save(filename, st2);
+        Console.WriteLine("\nFinal student (after static Save):");
+        Console.WriteLine(st2);
 
         Console.ReadKey();
     }

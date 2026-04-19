@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.Json;
 
 namespace SharpLab;
 
@@ -34,7 +35,7 @@ public class Student : Person, IEnumerable
         }
     }
 
-    public Education Education { get; init; }
+    public Education Education { get; set; }
 
     public int GroupNumber
     {
@@ -83,14 +84,127 @@ public class Student : Person, IEnumerable
 
     public override object DeepCopy()
     {
-        var copy = new Student(Person, Education, _groupNumber);
-        foreach (var t in _tests)
-            if (t != null)
-                copy.AddTests(new Test(t.Subject, t.IsPassed));
-        foreach (var e in _exams)
-            if (e != null)
-                copy.AddExams(new Exam(e.Subject, e.Grade, e.ExamDate));
-        return copy;
+        using var ms = new MemoryStream();
+        JsonSerializer.Serialize(ms, ToData());
+        ms.Position = 0;
+        return FromData(JsonSerializer.Deserialize<StudentData>(ms)!);
+    }
+
+    public bool Save(string filename)
+    {
+        FileStream? fs = null;
+        try
+        {
+            fs = new FileStream("../../../SerializedObjects/" + filename, FileMode.Create);
+            JsonSerializer.Serialize(fs, ToData());
+            return true;
+        }
+        catch (UnauthorizedAccessException) { return false; }
+        catch (IOException) { return false; }
+        catch (JsonException) { return false; }
+        catch (Exception) { return false; }
+        finally { fs?.Dispose(); }
+    }
+
+    public bool Load(string filename)
+    {
+        FileStream? fs = null;
+        try
+        {
+            fs = new FileStream("../../../SerializedObjects/" + filename, FileMode.Open);
+            var data = JsonSerializer.Deserialize<StudentData>(fs);
+
+            if (data is null || data.GroupNumber <= 100 || data.GroupNumber > 699)
+                return false;
+
+            _firstName = data.FirstName;
+            _lastName = data.LastName;
+            _birthDate = data.BirthDate;
+            GroupNumber = data.GroupNumber;
+            Education = data.Education;
+            _exams.Clear();
+            _exams.AddRange(data.Exams ?? new List<Exam>());
+            _tests.Clear();
+            _tests.AddRange(data.Tests ?? new List<Test>());
+
+            return true;
+        }
+        catch (FileNotFoundException) { return false; }
+        catch (UnauthorizedAccessException) { return false; }
+        catch (IOException) { return false; }
+        catch (JsonException) { return false; }
+        catch (Exception) { return false; }
+        finally { fs?.Dispose(); }
+    }
+
+    public static bool Save(string filename, Student obj) => obj.Save(filename);
+
+    public static bool Load(string filename, Student obj) => obj.Load(filename);
+
+    public bool AddFromConsole()
+    {
+        Console.WriteLine("Enter exam data in format:");
+        Console.WriteLine("SubjectName / Grade / Date (dd.MM.yyyy)");
+        Console.WriteLine("Delimiters: '/' or ',' or ';'");
+        Console.Write(">>> ");
+
+        string input = Console.ReadLine() ?? "";
+
+        try
+        {
+            string[] parts = input.Split(new char[] { '/', ',', ';' },
+                StringSplitOptions.TrimEntries);
+
+            if (parts.Length != 3)
+                throw new FormatException("Invalid number of elements.");
+
+            string subject = parts[0];
+            int grade = int.Parse(parts[1]);
+            DateTime date = DateTime.Parse(parts[2]);
+
+            _exams.Add(new Exam(subject, grade, date));
+            return true;
+        }
+        catch (FormatException ex)
+        {
+            Console.WriteLine($"Format error: {ex.Message}");
+            return false;
+        }
+        catch (OverflowException)
+        {
+            Console.WriteLine("Error: grade value out of range.");
+            return false;
+        }
+    }
+
+    private StudentData ToData() => new()
+    {
+        FirstName = _firstName,
+        LastName = _lastName,
+        BirthDate = _birthDate,
+        Education = Education,
+        GroupNumber = _groupNumber,
+        Exams = new List<Exam>(_exams),
+        Tests = new List<Test>(_tests)
+    };
+
+    private static Student FromData(StudentData data) =>
+        new(new Person(data.FirstName, data.LastName, data.BirthDate),
+            data.Education, data.GroupNumber)
+        {
+            Exams = data.Exams ?? new List<Exam>(),
+            Tests = data.Tests ?? new List<Test>()
+        };
+
+    private class StudentData
+    {
+        public string FirstName { get; set; } = "";
+        public string LastName { get; set; } = "";
+        public DateTime BirthDate { get; set; }
+        public Education Education { get; set; }
+        public int GroupNumber { get; set; }
+        public List<Exam>? Exams { get; set; }
+        public List<Test>? Tests { get; set; }
     }
 
     public void AddExams(params Exam[] exams)
