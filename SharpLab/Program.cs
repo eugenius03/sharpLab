@@ -1,3 +1,5 @@
+using System;
+
 namespace SharpLab;
 
 internal static class Program
@@ -55,7 +57,6 @@ internal static class Program
         Console.WriteLine("\nFinal student (after static Save):");
         Console.WriteLine(st2);
 
-        Console.WriteLine("\nDone. Press any key to exit.");
         Console.ReadKey();
     }
 }
