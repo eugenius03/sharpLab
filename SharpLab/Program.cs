@@ -1,62 +1,114 @@
-using System;
-
 namespace SharpLab;
 
 internal static class Program
 {
+    private static readonly Random Rng = new();
+
+    private static readonly Human[] All =
+    [
+        new Student    { Name = "Олексій"  },
+        new Student    { Name = "Максим"   },
+        new Botan      { Name = "Дмитро"   },
+        new Botan      { Name = "Ігор"     },
+        new Girl       { Name = "Олена"    },
+        new Girl       { Name = "Марія"    },
+        new PrettyGirl { Name = "Анна"     },
+        new PrettyGirl { Name = "Вікторія" },
+        new SmartGirl  { Name = "Наталія"  },
+        new SmartGirl  { Name = "Юлія"     },
+    ];
+
     private static void Main()
     {
-        Console.WriteLine("LAB 6 – Serialization");
-
-        var st1 = new Student(new Person("Ivan", "Lerk", new DateTime(2000, 1, 1)), Education.Bachelor, 311);
-        st1.AddExams(new Exam("Math", 5, new DateTime(2023, 1, 1)),
-            new Exam("Physics", 4, new DateTime(2023, 2, 1)));
-        st1.AddTests(new Test("Programming", true));
-
-        var st2 = (Student)st1.DeepCopy();
-        st2.Education = Education.Master;
-        st2.AddExams(new Exam("Chemistry", 3, new DateTime(2023, 3, 1)));
-
-        Console.WriteLine("\nOriginal student:");
-        Console.WriteLine(st1);
-        Console.WriteLine("\nDeep copy (modified):");
-        Console.WriteLine(st2);
-
-        Console.Write("\nEnter filename to save/load (e.g. StudentData.json): ");
-        var filename = Console.ReadLine() ?? "StudentData.json";
-
-        if (File.Exists("../../../SerializedObjects/" + filename))
+        if (DateTime.Now.DayOfWeek == DayOfWeek.Sunday)
         {
-            st2.Load(filename);
-            Console.WriteLine("\nLoaded from file:");
+            ConsoleHelper.WriteLine("Консоль не працює по неділях!", ConsoleColor.Red);
+            return;
         }
+
+        ConsoleHelper.PrintHeader();
+        ConsoleHelper.PrintInstructions();
+
+        while (true)
+        {
+            ShowPair(PickRandom(), PickRandom());
+            ShowPair(PickRandom(), PickRandom());
+
+            ConsoleHelper.WriteLine("  [ Enter - далі | T - тест | Q/F10 - вихід ]",
+                ConsoleColor.DarkGray);
+
+            ConsoleKeyInfo key = Console.ReadKey(true);
+
+            if (key.Key is ConsoleKey.F10 or ConsoleKey.Q)
+                break;
+
+            if (key.Key is ConsoleKey.T)
+                RunManualTest();
+
+            Console.WriteLine();
+        }
+
+        ConsoleHelper.WriteLine("\nДо побачення!", ConsoleColor.DarkCyan);
+    }
+
+    private static Human PickRandom()
+    {
+        return All[Rng.Next(All.Length)];
+    }
+
+    private static void ShowPair(Human first, Human second)
+    {
+        while (ReferenceEquals(first, second))
+            second = PickRandom();
+
+        try
+        {
+            IHasName? child = CoupleService.Couple(first, second,
+                out bool firstLikes, out bool secondLikes);
+
+            ConsoleHelper.PrintPairResult(first, second, child, firstLikes, secondLikes);
+        }
+        catch (SameGenderException ex)
+        {
+            ConsoleHelper.Write("  ── ", ConsoleColor.DarkGray);
+            ConsoleHelper.Write(first.GetType().Name,  ConsoleColor.White);
+            ConsoleHelper.Write($" ({first.Name})", ConsoleColor.Gray);
+            ConsoleHelper.Write("  +  ", ConsoleColor.DarkGray);
+            ConsoleHelper.Write(second.GetType().Name, ConsoleColor.White);
+            ConsoleHelper.WriteLine($" ({second.Name})", ConsoleColor.Gray);
+            ConsoleHelper.PrintSameGenderError(ex);
+        }
+    }
+
+    private static void RunManualTest()
+    {
+        Console.WriteLine();
+        ConsoleHelper.WriteLine("  ═══ ТЕСТОВИЙ РЕЖИМ ═══", ConsoleColor.Cyan);
+
+        for (int i = 0; i < All.Length; i++)
+        {
+            ConsoleHelper.Write($"  {i,2}: ", ConsoleColor.DarkGray);
+            ConsoleHelper.Write($"{All[i].GetType().Name,-12}", ConsoleColor.White);
+            ConsoleHelper.WriteLine($" ({All[i].Name})", ConsoleColor.Gray);
+        }
+
+        Console.WriteLine();
+        ConsoleHelper.Write("  Перший (0-9): ", ConsoleColor.DarkGray);
+        int idxA = ReadIndex();
+
+        ConsoleHelper.Write("  Другий (0-9): ", ConsoleColor.DarkGray);
+        int idxB = ReadIndex();
+
+        Console.WriteLine();
+        if (idxA >= 0 && idxB >= 0 && idxA < All.Length && idxB < All.Length)
+            ShowPair(All[idxA], All[idxB]);
         else
-        {
-            st2.Save(filename);
-            Console.WriteLine($"\nSaved to {filename}. Loaded student:");
-        }
-        Console.WriteLine(st2);
+            ConsoleHelper.WriteLine("  Невірний індекс.", ConsoleColor.Red);
+    }
 
-        Console.WriteLine("\nAdd exam from console:");
-        if (!st2.AddFromConsole())
-            Console.WriteLine("Exam not added (invalid input).");
-
-        st2.Save(filename);
-        Console.WriteLine("\nUpdated student (after AddFromConsole + Save):");
-        Console.WriteLine(st2);
-
-        Student.Load(filename, st2);
-        Console.WriteLine("\nReloaded via static Load:");
-        Console.WriteLine(st2);
-
-        Console.WriteLine("\nAdd another exam from console:");
-        if (!st2.AddFromConsole())
-            Console.WriteLine("Exam not added (invalid input).");
-
-        Student.Save(filename, st2);
-        Console.WriteLine("\nFinal student (after static Save):");
-        Console.WriteLine(st2);
-
-        Console.ReadKey();
+    private static int ReadIndex()
+    {
+        string? input = Console.ReadLine();
+        return int.TryParse(input?.Trim(), out int idx) ? idx : -1;
     }
 }
