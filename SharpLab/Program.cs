@@ -1,62 +1,136 @@
-using System;
+using System.Threading.Tasks.Dataflow;
 
 namespace SharpLab;
 
-internal static class Program
+class Program
 {
-    private static void Main()
+    static async Task Main()
     {
-        Console.WriteLine("LAB 6 – Serialization");
+        var rng = new Random(42);
+        var cts = new CancellationTokenSource();
 
-        var st1 = new Student(new Person("Ivan", "Lerk", new DateTime(2000, 1, 1)), Education.Bachelor, 311);
-        st1.AddExams(new Exam("Math", 5, new DateTime(2023, 1, 1)),
-            new Exam("Physics", 4, new DateTime(2023, 2, 1)));
-        st1.AddTests(new Test("Programming", true));
-
-        var st2 = (Student)st1.DeepCopy();
-        st2.Education = Education.Master;
-        st2.AddExams(new Exam("Chemistry", 3, new DateTime(2023, 3, 1)));
-
-        Console.WriteLine("\nOriginal student:");
-        Console.WriteLine(st1);
-        Console.WriteLine("\nDeep copy (modified):");
-        Console.WriteLine(st2);
-
-        Console.Write("\nEnter filename to save/load (e.g. StudentData.json): ");
-        var filename = Console.ReadLine() ?? "StudentData.json";
-
-        if (File.Exists("../../../SerializedObjects/" + filename))
+        Console.CancelKeyPress += (_, e) =>
         {
-            st2.Load(filename);
-            Console.WriteLine("\nLoaded from file:");
-        }
-        else
+            e.Cancel = true;
+            cts.Cancel();
+            Console.WriteLine("\nStop requested...");
+        };
+
+        Console.WriteLine("=== Matrix Multiplication via TPL Dataflow ===");
+        Console.WriteLine("Ctrl+C to cancel at any time.\n");
+
+        while (!cts.Token.IsCancellationRequested)
         {
-            st2.Save(filename);
-            Console.WriteLine($"\nSaved to {filename}. Loaded student:");
+            Console.Write("Enter rows A: ");
+            if (!int.TryParse(Console.ReadLine(), out int ra) || ra <= 0) break;
+            Console.Write("Enter cols A (= rows B): ");
+            if (!int.TryParse(Console.ReadLine(), out int ca) || ca <= 0) break;
+            Console.Write("Enter cols B: ");
+            if (!int.TryParse(Console.ReadLine(), out int cb) || cb <= 0) break;
+
+            Console.WriteLine("\nGenerating matrices...");
+            var a = GenerateMatrix(ra, ca, rng);
+            var b = GenerateMatrix(ca, cb, rng);
+
+            if (ra <= 10 && ca <= 10) PrintMatrix(a, "A");
+            if (ca <= 10 && cb <= 10) PrintMatrix(b, "B");
+
+            Console.WriteLine($"Multiplying [{ra}x{ca}] * [{ca}x{cb}] = [{ra}x{cb}]...");
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+
+            var result = await MultiplyDataflow(a, b, cts.Token);
+            sw.Stop();
+
+            if (result != null)
+            {
+                Console.WriteLine($"Done in {sw.Elapsed.TotalSeconds:F2}s\n");
+                if (ra <= 10 && cb <= 10) PrintMatrix(result, "Result");
+            }
+
+            if (cts.Token.IsCancellationRequested) break;
+
+            Console.Write("\nMultiply again? (y/n): ");
+            var ans = Console.ReadLine();
+            if (ans?.Trim().ToLower() != "y") break;
         }
-        Console.WriteLine(st2);
 
-        Console.WriteLine("\nAdd exam from console:");
-        if (!st2.AddFromConsole())
-            Console.WriteLine("Exam not added (invalid input).");
+        Console.WriteLine("Bye.");
+    }
 
-        st2.Save(filename);
-        Console.WriteLine("\nUpdated student (after AddFromConsole + Save):");
-        Console.WriteLine(st2);
+    static double[,] GenerateMatrix(int rows, int cols, Random rng)
+    {
+        var m = new double[rows, cols];
+        for (int i = 0; i < rows; i++)
+        for (int j = 0; j < cols; j++)
+            m[i, j] = Math.Round(rng.NextDouble() * 10 - 5, 1);
+        return m;
+    }
 
-        Student.Load(filename, st2);
-        Console.WriteLine("\nReloaded via static Load:");
-        Console.WriteLine(st2);
+    static void PrintMatrix(double[,] m, string name)
+    {
+        int rows = m.GetLength(0), cols = m.GetLength(1);
+        Console.WriteLine($"{name} [{rows}x{cols}]:");
+        int maxRows = Math.Min(rows, 6), maxCols = Math.Min(cols, 6);
+        for (int i = 0; i < maxRows; i++)
+        {
+            for (int j = 0; j < maxCols; j++)
+                Console.Write($"{m[i, j],7:F1}");
+            if (cols > maxCols) Console.Write(" ...");
+            Console.WriteLine();
+        }
+        if (rows > maxRows) Console.WriteLine("  ...");
+        Console.WriteLine();
+    }
 
-        Console.WriteLine("\nAdd another exam from console:");
-        if (!st2.AddFromConsole())
-            Console.WriteLine("Exam not added (invalid input).");
+    static async Task<double[,]?> MultiplyDataflow(double[,] a, double[,] b, CancellationToken ct)
+    {
+        int ra = a.GetLength(0), ca = a.GetLength(1);
+        int rb = b.GetLength(0), cb = b.GetLength(1);
 
-        Student.Save(filename, st2);
-        Console.WriteLine("\nFinal student (after static Save):");
-        Console.WriteLine(st2);
+        if (ca != rb)
+        {
+            Console.WriteLine($"Cannot multiply: A columns ({ca}) != B rows ({rb})");
+            return null;
+        }
 
-        Console.ReadKey();
+        var result = new double[ra, cb];
+        long total = (long)ra * cb;
+        long done = 0;
+
+        int maxDop = Math.Max(1, Environment.ProcessorCount - 1);
+
+        var computeBlock = new ActionBlock<(int row, int col)>(
+            pos =>
+            {
+                if (ct.IsCancellationRequested) return;
+                double sum = 0;
+                for (int k = 0; k < ca; k++)
+                    sum += a[pos.row, k] * b[k, pos.col];
+                result[pos.row, pos.col] = sum;
+
+                long d = Interlocked.Increment(ref done);
+                if (total <= 100 || d % (total / 100) == 0)
+                {
+                    int pct = (int)(d * 100 / total);
+                    Console.Write($"\rProgress: {pct,3}%  ({d}/{total})");
+                }
+            },
+            new ExecutionDataflowBlockOptions
+            {
+                MaxDegreeOfParallelism = maxDop,
+                CancellationToken = ct,
+                BoundedCapacity = maxDop * 4
+            });
+
+        for (int i = 0; i < ra && !ct.IsCancellationRequested; i++)
+        for (int j = 0; j < cb && !ct.IsCancellationRequested; j++)
+            await computeBlock.SendAsync((i, j), ct);
+
+        computeBlock.Complete();
+        try { await computeBlock.Completion; }
+        catch (OperationCanceledException) { Console.WriteLine("\nCancelled."); return null; }
+
+        Console.WriteLine($"\rProgress: 100%  ({total}/{total})");
+        return result;
     }
 }
